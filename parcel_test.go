@@ -37,7 +37,7 @@ func setupTestDB(t *testing.T) *sql.DB {
 		number INTEGER PRIMARY KEY AUTOINCREMENT,
 		client INTEGER,
 		status TEXT,
-		adress TEXT,
+		address TEXT,
 		created_at TEXT
 		)
 	`)

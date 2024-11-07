@@ -4,16 +4,25 @@ import (
 	"database/sql"
 )
 
-type ParcelStore struct {
+type ParcelStore interface {
+	Add(parcel Parcel) (int, error)
+	Get(id int) (Parcel, error)
+	GetByClient(client int) ([]Parcel, error)
+	SetStatus(id int, status string) error
+	SetAddress(id int, address string) error
+	Delete(id int) error
+}
+
+type SQLiteParcelStore struct {
 	db *sql.DB
 }
 
 func NewParcelStore(db *sql.DB) ParcelStore {
-	return ParcelStore{db: db}
+	return &SQLiteParcelStore{db: db}
 }
 
-func (s ParcelStore) Add(parcel Parcel) (int, error) {
-	result, err := s.db.Exec("INSERT INTO parcels (client, status, adress, created_at) VALUES (?, ?, ?, ?)", parcel.Client, parcel.Status, parcel.Address, parcel.CreatedAt)
+func (s *SQLiteParcelStore) Add(parcel Parcel) (int, error) {
+	result, err := s.db.Exec("INSERT INTO parcels (client, status, address, created_at) VALUES (?, ?, ?, ?)", parcel.Client, parcel.Status, parcel.Address, parcel.CreatedAt)
 	if err != nil {
 		return 0, err
 	}
@@ -24,7 +33,7 @@ func (s ParcelStore) Add(parcel Parcel) (int, error) {
 	return int(id), nil
 }
 
-func (s ParcelStore) Get(id int) (Parcel, error) {
+func (s *SQLiteParcelStore) Get(id int) (Parcel, error) {
 	var parcel Parcel
 	err := s.db.QueryRow("SELECT number, client, status, address, created_at FROM parcels WHERE number = ?", id).Scan(&parcel.Number, &parcel.Client, &parcel.Status, &parcel.Address, &parcel.CreatedAt)
 	if err != nil {
@@ -33,7 +42,7 @@ func (s ParcelStore) Get(id int) (Parcel, error) {
 	return parcel, nil
 }
 
-func (s ParcelStore) GetByClient(client int) ([]Parcel, error) {
+func (s *SQLiteParcelStore) GetByClient(client int) ([]Parcel, error) {
 	rows, err := s.db.Query("SELECT number, client, status, address, created_at FROM parcels WHERE client = ?", client)
 	if err != nil {
 		return nil, err
@@ -52,17 +61,17 @@ func (s ParcelStore) GetByClient(client int) ([]Parcel, error) {
 	return parcels, nil
 }
 
-func (s ParcelStore) SetStatus(id int, status string) error {
+func (s *SQLiteParcelStore) SetStatus(id int, status string) error {
 	_, err := s.db.Exec("UPDATE parcels SET status = ? WHERE number = ?", status, id)
 	return err
 }
 
-func (s ParcelStore) SetAddress(id int, address string) error {
+func (s *SQLiteParcelStore) SetAddress(id int, address string) error {
 	_, err := s.db.Exec("UPDATE parcels SET address = ? WHERE number = ?", address, id)
 	return err
 }
 
-func (s ParcelStore) Delete(id int) error {
+func (s *SQLiteParcelStore) Delete(id int) error {
 	_, err := s.db.Exec("DELETE FROM parcels WHERE number = ?", id)
 	return err
 }
