@@ -2,59 +2,82 @@ package main
 
 import (
 	"database/sql"
+	"fmt"
 )
 
-type ParcelStore struct {
+type ParcelStore interface {
+	Add(parcel Parcel) (int, error)
+	Get(id int) (Parcel, error)
+	GetByClient(client int) ([]Parcel, error)
+	SetStatus(id int, status string) error
+	SetAddress(id int, address string) error
+	Delete(id int) error
+}
+
+type SQLiteParcelStore struct {
 	db *sql.DB
 }
 
 func NewParcelStore(db *sql.DB) ParcelStore {
-	return ParcelStore{db: db}
+	return &SQLiteParcelStore{db: db}
 }
 
-func (s ParcelStore) Add(p Parcel) (int, error) {
-	// реализуйте добавление строки в таблицу parcel, используйте данные из переменной p
-
-	// верните идентификатор последней добавленной записи
-	return 0, nil
+func (s *SQLiteParcelStore) Add(parcel Parcel) (int, error) {
+	result, err := s.db.Exec("INSERT INTO parcels (client, status, address, created_at) VALUES (?, ?, ?, ?)", parcel.Client, parcel.Status, parcel.Address, parcel.CreatedAt)
+	if err != nil {
+		return 0, fmt.Errorf("failed to insert parcel: %w", err)
+	}
+	id, err := result.LastInsertId()
+	if err != nil {
+		return 0, fmt.Errorf("failed to insert last id: %w", err)
+	}
+	return int(id), nil
 }
 
-func (s ParcelStore) Get(number int) (Parcel, error) {
-	// реализуйте чтение строки по заданному number
-	// здесь из таблицы должна вернуться только одна строка
-
-	// заполните объект Parcel данными из таблицы
-	p := Parcel{}
-
-	return p, nil
+func (s *SQLiteParcelStore) Get(id int) (Parcel, error) {
+	var parcel Parcel
+	err := s.db.QueryRow("SELECT number, client, status, address, created_at FROM parcels WHERE number = ?", id).Scan(&parcel.Number, &parcel.Client, &parcel.Status, &parcel.Address, &parcel.CreatedAt)
+	if err != nil {
+		return Parcel{}, fmt.Errorf("failed to get parcel: %w", err)
+	}
+	return parcel, nil
 }
 
-func (s ParcelStore) GetByClient(client int) ([]Parcel, error) {
-	// реализуйте чтение строк из таблицы parcel по заданному client
-	// здесь из таблицы может вернуться несколько строк
+func (s *SQLiteParcelStore) GetByClient(client int) ([]Parcel, error) {
+	rows, err := s.db.Query("SELECT number, client, status, address, created_at FROM parcels WHERE client = ?", client)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get pasrcel by client: %w", err)
+	}
+	defer rows.Close()
 
-	// заполните срез Parcel данными из таблицы
-	var res []Parcel
+	var parcels []Parcel
+	for rows.Next() {
+		var parcel Parcel
+		err := rows.Scan(&parcel.Number, &parcel.Client, &parcel.Status, &parcel.Address, &parcel.CreatedAt)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan data from rows: %w", err)
+		}
+		parcels = append(parcels, parcel)
+	}
 
-	return res, nil
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("incorrect data rows: %w", err)
+	}
+
+	return parcels, nil
 }
 
-func (s ParcelStore) SetStatus(number int, status string) error {
-	// реализуйте обновление статуса в таблице parcel
-
-	return nil
+func (s *SQLiteParcelStore) SetStatus(id int, status string) error {
+	_, err := s.db.Exec("UPDATE parcels SET status = ? WHERE number = ?", status, id)
+	return err
 }
 
-func (s ParcelStore) SetAddress(number int, address string) error {
-	// реализуйте обновление адреса в таблице parcel
-	// менять адрес можно только если значение статуса registered
-
-	return nil
+func (s *SQLiteParcelStore) SetAddress(id int, address string) error {
+	_, err := s.db.Exec("UPDATE parcels SET address = ? WHERE number = ?", address, id)
+	return err
 }
 
-func (s ParcelStore) Delete(number int) error {
-	// реализуйте удаление строки из таблицы parcel
-	// удалять строку можно только если значение статуса registered
-
-	return nil
+func (s *SQLiteParcelStore) Delete(id int) error {
+	_, err := s.db.Exec("DELETE FROM parcels WHERE number = ?", id)
+	return err
 }
