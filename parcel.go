@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"fmt"
 )
 
 type ParcelStore interface {
@@ -24,11 +25,11 @@ func NewParcelStore(db *sql.DB) ParcelStore {
 func (s *SQLiteParcelStore) Add(parcel Parcel) (int, error) {
 	result, err := s.db.Exec("INSERT INTO parcels (client, status, address, created_at) VALUES (?, ?, ?, ?)", parcel.Client, parcel.Status, parcel.Address, parcel.CreatedAt)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("failed to insert parcel: %w", err)
 	}
 	id, err := result.LastInsertId()
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("failed to insert last id: %w", err)
 	}
 	return int(id), nil
 }
@@ -37,7 +38,7 @@ func (s *SQLiteParcelStore) Get(id int) (Parcel, error) {
 	var parcel Parcel
 	err := s.db.QueryRow("SELECT number, client, status, address, created_at FROM parcels WHERE number = ?", id).Scan(&parcel.Number, &parcel.Client, &parcel.Status, &parcel.Address, &parcel.CreatedAt)
 	if err != nil {
-		return parcel, err
+		return Parcel{}, fmt.Errorf("failed to get parcel: %w", err)
 	}
 	return parcel, nil
 }
@@ -45,7 +46,7 @@ func (s *SQLiteParcelStore) Get(id int) (Parcel, error) {
 func (s *SQLiteParcelStore) GetByClient(client int) ([]Parcel, error) {
 	rows, err := s.db.Query("SELECT number, client, status, address, created_at FROM parcels WHERE client = ?", client)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get pasrcel by client: %w", err)
 	}
 	defer rows.Close()
 
@@ -54,10 +55,15 @@ func (s *SQLiteParcelStore) GetByClient(client int) ([]Parcel, error) {
 		var parcel Parcel
 		err := rows.Scan(&parcel.Number, &parcel.Client, &parcel.Status, &parcel.Address, &parcel.CreatedAt)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to scan data from rows: %w", err)
 		}
 		parcels = append(parcels, parcel)
 	}
+
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("incorrect data rows: %w", err)
+	}
+
 	return parcels, nil
 }
 

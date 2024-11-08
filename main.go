@@ -103,15 +103,17 @@ func main() {
 		return
 	}
 	defer db.Close()
+
 	_, err = db.Exec(` 
-	CREATE TABLE IF NOT EXISTS parcels ( 
-	number INTEGER PRIMARY KEY AUTOINCREMENT, 
-	client INTEGER, 
-	status TEXT, 
-	address TEXT, 
-	created_at TEXT 
-	) 
+		CREATE TABLE IF NOT EXISTS parcels ( 
+			number INTEGER PRIMARY KEY AUTOINCREMENT, 
+			client INTEGER, 
+			status TEXT, 
+			address TEXT, 
+			created_at TEXT 
+		) 
 	`)
+
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -186,5 +188,3 @@ func main() {
 		return
 	}
 }
-
-//test

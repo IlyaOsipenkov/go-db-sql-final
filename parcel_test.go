@@ -2,10 +2,12 @@ package main
 
 import (
 	"database/sql"
+	"errors"
 	"math/rand"
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -59,11 +61,11 @@ func TestAddGetDelete(t *testing.T) {
 
 	// get
 	gotParcel, err := store.Get(id)
-	require.NoError(t, err)
-	require.Equal(t, parcel.Client, gotParcel.Client)
-	require.Equal(t, parcel.Status, gotParcel.Status)
-	require.Equal(t, parcel.Address, gotParcel.Address)
-	require.Equal(t, parcel.CreatedAt, gotParcel.CreatedAt)
+	assert.NoError(t, err)
+	assert.Equal(t, parcel.Client, gotParcel.Client)
+	assert.Equal(t, parcel.Status, gotParcel.Status)
+	assert.Equal(t, parcel.Address, gotParcel.Address)
+	assert.Equal(t, parcel.CreatedAt, gotParcel.CreatedAt)
 
 	// delete
 	err = store.Delete(id)
@@ -72,6 +74,9 @@ func TestAddGetDelete(t *testing.T) {
 	// cant get it from db
 	_, err = store.Get(id)
 	require.Error(t, err)
+
+	//like this?
+	require.True(t, errors.Is(err, sql.ErrNoRows), "expected sql.ErrNoRows error")
 }
 
 // TestSetAddress проверяет обновление адреса
@@ -159,10 +164,10 @@ func TestGetByClient(t *testing.T) {
 
 	// check
 	for _, parcel := range storedParcels {
-		require.Contains(t, parcelMap, parcel.Number)
-		require.Equal(t, parcelMap[parcel.Number].Client, parcel.Client)
-		require.Equal(t, parcelMap[parcel.Number].Status, parcel.Status)
-		require.Equal(t, parcelMap[parcel.Number].Address, parcel.Address)
-		require.Equal(t, parcelMap[parcel.Number].CreatedAt, parcel.CreatedAt)
+		assert.Contains(t, parcelMap, parcel.Number)
+		assert.Equal(t, parcelMap[parcel.Number].Client, parcel.Client)
+		assert.Equal(t, parcelMap[parcel.Number].Status, parcel.Status)
+		assert.Equal(t, parcelMap[parcel.Number].Address, parcel.Address)
+		assert.Equal(t, parcelMap[parcel.Number].CreatedAt, parcel.CreatedAt)
 	}
 }
